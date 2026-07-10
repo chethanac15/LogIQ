@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Repo {
+  id        String    @id @default(uuid())
+  fullName  String    @unique
+  createdAt DateTime  @default(now())
+  failures  Failure[]
+}
+
+model Failure {
+  id              String   @id @default(uuid())
+  repoId          String
+  repo            Repo     @relation(fields: [repoId], references: [id])
+  runId           String
+  status          String
+  failingCommand  String?
+  rootCause       String?
+  suggestedFix    String?
+  createdAt       DateTime @default(now())
+}
