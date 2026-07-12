@@ -1,9 +1,10 @@
 import express from "express";
 import { prisma } from "./lib/prisma";
-
+import githubRoutes from "./routes/github.routes";
 const app = express();
 
 app.use(express.json());
+app.use("/webhook", githubRoutes);
 
 app.get("/health", async (req, res) => {
   try {
