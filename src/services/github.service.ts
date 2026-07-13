@@ -1,5 +1,8 @@
 import { octokit } from "../config/github";
 
+/**
+ * Verify that the GitHub token is valid.
+ */
 export async function verifyGithubConnection() {
   const response = await octokit.rest.users.getAuthenticated();
 
@@ -8,12 +11,15 @@ export async function verifyGithubConnection() {
   return response.data.login;
 }
 
-export async function downloadWorkflowLogs(
+/**
+ * Get the temporary download URL for workflow logs.
+ */
+export async function getWorkflowLogsUrl(
   owner: string,
   repo: string,
   runId: number
 ) {
-  return await octokit.request(
+  const response = await octokit.request(
     "GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs",
     {
       owner,
@@ -21,4 +27,6 @@ export async function downloadWorkflowLogs(
       run_id: runId,
     }
   );
+
+  return response.url;
 }

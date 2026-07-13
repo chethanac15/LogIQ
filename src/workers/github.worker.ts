@@ -1,13 +1,18 @@
 import { Worker } from "bullmq";
 import {
   verifyGithubConnection,
-  downloadWorkflowLogs,
+  getWorkflowLogsUrl,
 } from "../services/github.service";
+import { downloadWorkflowLogs } from "../services/download.service";
+import { extractWorkflowLogs } from "../services/unzip.service";
+import { mergeWorkflowLogs } from "../utils/mergeLogs";
+import { analyzeLogs } from "../services/ollama.service";
 
 const worker = new Worker(
   "github-workflows",
   async (job) => {
     try {
+      console.log("\n======================================");
       console.log("📦 Received Job");
 
       const runId = job.data.workflow_run.id;
@@ -27,19 +32,70 @@ const worker = new Worker(
       // Verify GitHub authentication
       await verifyGithubConnection();
 
-      // Request workflow logs
-      const response = await downloadWorkflowLogs(
+      // Only process completed workflow runs
+      if (action !== "completed") {
+        console.log("⏭️ Workflow not completed. Skipping.");
+        console.log("======================================\n");
+        return;
+      }
+
+      // Step 1: Get workflow logs URL
+      console.log("\n📥 Step 1: Getting workflow logs URL...");
+
+      const logsUrl = await getWorkflowLogsUrl(
         owner,
         repo,
         runId
       );
 
-      console.log("HTTP Status:", response.status);
-      console.log("Redirect URL:", response.headers.location);
+      console.log("✅ Logs URL received");
 
+      // Step 2: Download workflow logs ZIP
+      console.log("\n⬇️ Step 2: Downloading workflow logs...");
+
+      const zipPath = await downloadWorkflowLogs(
+        logsUrl,
+        runId
+      );
+
+      console.log("✅ ZIP downloaded");
+      console.log("ZIP:", zipPath);
+
+      // Step 3: Extract ZIP
+      console.log("\n📂 Step 3: Extracting ZIP...");
+
+      const extractedPath = extractWorkflowLogs(zipPath);
+
+      console.log("✅ ZIP extracted");
+      console.log("Folder:", extractedPath);
+
+      // Step 4: Merge logs
+      console.log("\n📖 Step 4: Merging log files...");
+
+      const mergedLogs = mergeWorkflowLogs(extractedPath);
+
+      console.log("✅ Logs merged successfully.");
+      console.log("📏 Total merged log length:", mergedLogs.length);
+
+      console.log("\n📄 Preview (first 500 characters):");
+      console.log(mergedLogs.substring(0, 500));
+
+      // Step 5: Analyze with Ollama
+      console.log("\n🤖 Step 5: Sending logs to Ollama...");
+
+      const analysis = await analyzeLogs(mergedLogs);
+
+      console.log("\n================ AI ANALYSIS ================\n");
+      console.log(analysis);
+      console.log("\n=============================================\n");
+
+      console.log("🎉 Workflow processing completed successfully.");
+      console.log("======================================\n");
     } catch (error) {
-      console.error("❌ Worker failed:");
+      console.error("\n======================================");
+      console.error("❌ Worker failed");
       console.error(error);
+      console.error("======================================\n");
     }
   },
   {
