@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { Worker } from "bullmq";
 import {
   verifyGithubConnection,
@@ -7,6 +9,9 @@ import { downloadWorkflowLogs } from "../services/download.service";
 import { extractWorkflowLogs } from "../services/unzip.service";
 import { mergeWorkflowLogs } from "../utils/mergeLogs";
 import { analyzeLogs } from "../services/ollama.service";
+import { saveWorkflowAnalysis } from "../services/analysis.service";
+
+console.log("DATABASE_URL:", process.env.DATABASE_URL);
 
 const worker = new Worker(
   "github-workflows",
@@ -39,7 +44,7 @@ const worker = new Worker(
         return;
       }
 
-      // Step 1: Get workflow logs URL
+      // Step 1
       console.log("\n📥 Step 1: Getting workflow logs URL...");
 
       const logsUrl = await getWorkflowLogsUrl(
@@ -50,7 +55,7 @@ const worker = new Worker(
 
       console.log("✅ Logs URL received");
 
-      // Step 2: Download workflow logs ZIP
+      // Step 2
       console.log("\n⬇️ Step 2: Downloading workflow logs...");
 
       const zipPath = await downloadWorkflowLogs(
@@ -61,7 +66,7 @@ const worker = new Worker(
       console.log("✅ ZIP downloaded");
       console.log("ZIP:", zipPath);
 
-      // Step 3: Extract ZIP
+      // Step 3
       console.log("\n📂 Step 3: Extracting ZIP...");
 
       const extractedPath = extractWorkflowLogs(zipPath);
@@ -69,7 +74,7 @@ const worker = new Worker(
       console.log("✅ ZIP extracted");
       console.log("Folder:", extractedPath);
 
-      // Step 4: Merge logs
+      // Step 4
       console.log("\n📖 Step 4: Merging log files...");
 
       const mergedLogs = mergeWorkflowLogs(extractedPath);
@@ -80,7 +85,7 @@ const worker = new Worker(
       console.log("\n📄 Preview (first 500 characters):");
       console.log(mergedLogs.substring(0, 500));
 
-      // Step 5: Analyze with Ollama
+      // Step 5
       console.log("\n🤖 Step 5: Sending logs to Ollama...");
 
       const analysis = await analyzeLogs(mergedLogs);
@@ -89,7 +94,21 @@ const worker = new Worker(
       console.log(analysis);
       console.log("\n=============================================\n");
 
-      console.log("🎉 Workflow processing completed successfully.");
+      // Step 6
+      console.log("💾 Step 6: Saving AI analysis to PostgreSQL...");
+
+      await saveWorkflowAnalysis(
+        runId,
+        owner,
+        repo,
+        status,
+        conclusion ?? "unknown",
+        analysis
+      );
+
+      console.log("✅ AI analysis saved successfully.");
+
+      console.log("\n🎉 Workflow processing completed successfully.");
       console.log("======================================\n");
     } catch (error) {
       console.error("\n======================================");

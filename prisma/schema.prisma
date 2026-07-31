@@ -15,13 +15,24 @@ model Repo {
 }
 
 model Failure {
-  id              String   @id @default(uuid())
-  repoId          String
-  repo            Repo     @relation(fields: [repoId], references: [id])
-  runId           String
-  status          String
-  failingCommand  String?
-  rootCause       String?
-  suggestedFix    String?
-  createdAt       DateTime @default(now())
+  id             String   @id @default(uuid())
+  repoId         String
+  runId          String
+  status         String
+  failingCommand String?
+  rootCause      String?
+  suggestedFix   String?
+  createdAt      DateTime @default(now())
+  repo           Repo     @relation(fields: [repoId], references: [id])
+}
+
+model WorkflowAnalysis {
+  id         Int      @id @default(autoincrement())
+  runId      BigInt   @unique
+  owner      String
+  repository String
+  status     String
+  conclusion String
+  analysis   String
+  createdAt  DateTime @default(now())
 }
