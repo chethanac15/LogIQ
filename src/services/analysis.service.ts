@@ -9,12 +9,6 @@ export async function saveWorkflowAnalysis(
   analysis: string
 ) {
   try {
-    console.log("📡 Connecting to PostgreSQL...");
-
-    await prisma.$connect();
-
-    console.log("✅ Connected to PostgreSQL");
-
     const savedAnalysis = await prisma.workflowAnalysis.create({
       data: {
         runId: BigInt(runId),
@@ -26,15 +20,44 @@ export async function saveWorkflowAnalysis(
       },
     });
 
-    console.log("✅ Analysis saved to PostgreSQL");
+    console.log("✅ Workflow analysis saved to PostgreSQL.");
 
     return savedAnalysis;
   } catch (error) {
-    console.error("❌ Error inside analysis.service");
+    console.error("❌ Error saving workflow analysis:");
     console.error(error);
     throw error;
-  } finally {
-    await prisma.$disconnect();
-    console.log("🔌 Prisma disconnected");
+  }
+}
+
+export async function getAllAnalyses() {
+  try {
+    const analyses = await prisma.workflowAnalysis.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return analyses;
+  } catch (error) {
+    console.error("❌ Error fetching workflow analyses:");
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function getAnalysisByRunId(runId: number) {
+  try {
+    const analysis = await prisma.workflowAnalysis.findUnique({
+      where: {
+        runId: BigInt(runId),
+      },
+    });
+
+    return analysis;
+  } catch (error) {
+    console.error("❌ Error fetching workflow analysis:");
+    console.error(error);
+    throw error;
   }
 }

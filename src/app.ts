@@ -1,16 +1,24 @@
 import express from "express";
 import { prisma } from "./lib/prisma";
+
 import githubRoutes from "./routes/github.routes";
+import analysisRoutes from "./routes/analysis.routes";
+
 const app = express();
 
+// Middleware
 app.use(express.json());
-app.use("/webhook", githubRoutes);
 
+// Routes
+app.use("/webhook", githubRoutes);
+app.use("/analysis", analysisRoutes);
+
+// Health Check
 app.get("/health", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
 
-    res.json({
+    res.status(200).json({
       status: "ok",
       database: "connected",
     });
