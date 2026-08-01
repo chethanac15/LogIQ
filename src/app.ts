@@ -1,10 +1,20 @@
 import express from "express";
+import cors from "cors";
 import { prisma } from "./lib/prisma";
 
 import githubRoutes from "./routes/github.routes";
 import analysisRoutes from "./routes/analysis.routes";
 
 const app = express();
+
+// Enable CORS for the React frontend
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 
 // Middleware
 app.use(express.json());
